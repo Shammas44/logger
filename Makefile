@@ -19,7 +19,7 @@ LIB_NAME = logger
 # FLAGS
 # ---------------------------
 CC = gcc
-FLAGS = -Wall -Wextra -Werror -g -std=c99
+FLAGS = -Wall -Wextra -Werror -g
 
 # Directories
 # ---------------------------
