@@ -28,6 +28,9 @@ typedef struct {
   int line;
 } LOG_Log;
 
+void LOG_runtimeLogger_reset(void);
+LOG_Log LOG_runtimeLogger_get_last_log(void);
+
 #define LOG_ERROR(description)                                                 \
   LOG_runtimeLogger_log(description, LOG_RuntimeLogger_code_error, __FILE__, __LINE__)
 

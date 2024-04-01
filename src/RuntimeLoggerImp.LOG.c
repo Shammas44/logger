@@ -1,4 +1,4 @@
-#include "RuntimeLoggerImp.LOG.h"
+#include "RuntimeLogger.LOG.h"
 #include <stdio.h>
 #include <time.h>
 
