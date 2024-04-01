@@ -1,6 +1,6 @@
-#include "RuntimeLogger.LOG.h"
 #include <criterion/criterion.h>
 #include <logger.h>
+#include <stdio.h>
 #define T LOG
 
 static void setup(void) {
