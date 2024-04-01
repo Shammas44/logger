@@ -20,17 +20,23 @@ LIB_NAME = logger
 # ---------------------------
 CC = gcc
 FLAGS = -Wall -Wextra -Werror -g
+EXTRA_LIBS = -l ssl -l crypto
+
+# to set the option: export OPTION=<prod|dev|test>; make <target>
+ifeq ($(OPTION), prod)
+	FLAGS = -Wall -Wextra -Werror
+endif
+ifeq ($(OPTION), dev)
+	FLAGS = -Wall -Wextra -Werror -g
+endif
+ifeq ($(OPTION), test)
+	FLAGS = -Wno-builtin-declaration-mismatch -Wno-implicit-function-declaration
+endif
 
 # Directories
 # ---------------------------
 SRC_DIR = src
-INC_DIR = src/include
 BIN_DIR = bin
-
-# Include directories
-# ---------------------------
-INC_DIRS = $(INC_DIR)
-INC = $(foreach dir,$(INC_DIRS),-I $(dir))
 
 # Library sources
 # ---------------------------
@@ -42,33 +48,35 @@ LIB_OBJS = $(LIB_SRC_FILES:$(SRC_DIR)/%.c=$(SRC_DIR)/%.o)
 MAIN_SRC_FILES = main.c
 MAIN_OBJS = $(MAIN_SRC_FILES:%.c=$(BIN_DIR)/%.o)
 
-# Main application executable
-# ---------------------------
-MAIN_EXEC = main
-
 # Link against the library
 # ---------------------------
 
 # Add the include directory of the librairies to the include path
-INC_LIB_DIR:=$(shell find lib -type d -name "include" \; 2>/dev/null)
+INC_LIB_DIR:=$(shell find -L lib -type d -name "include")
 INC_STATIC_LIB:=$(foreach dir,$(INC_LIB_DIR),-I $(dir))
 
 # Add the bin directory of the librairies to the include path
-LIB_BIN_DIR:=$(shell find lib -type d -name "bin" \; 2>/dev/null)
+LIB_BIN_DIR:=$(shell find -L lib -type d -name "bin")
 INC_STATIC_BIN:=$(foreach dir,$(LIB_BIN_DIR),-L $(dir))
 
 # Add the librairies to the include path
-LIBS_BASENAME:= $(shell find lib -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2>/dev/null)
+LIBS_BASENAME:= $(shell find -L lib -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2>/dev/null)
 INC_LIBS:=$(foreach dir,$(LIBS_BASENAME),-l $(dir))
 
-EXTRA_LIBS = -l ssl -l crypto
-LIBS = $(INC_STATIC_BIN) $(INC_STATIC_LIB) $(INC_LIBS) $(EXTRA_LIBS) 
-LINK = -L $(BIN_DIR) -l $(LIB_NAME)
-INC = -I src/include -I /usr/local/include
+LIBS = $(INC_STATIC_BIN) $(INC_LIBS) $(EXTRA_LIBS) 
+LINK = -L $(BIN_DIR) -L /usr/local/lib -l $(LIB_NAME)
+INC = -I src/include -I /usr/local/include $(INC_STATIC_LIB) 
+LIB_TEST=-l criterion
+
+SOURCES:=$(shell find ./src -type f -name "*.c" )
+TEST_FILES = $(wildcard tests/*.c)
+SOURCES_TEST=$(SOURCES) $(wildcard tests/*.c)
+OBJS=$(SOURCES:%.c=%.o)
+OBJS_TEST=$(OBJS) $(SOURCES_TEST:%.c=%.o)
 
 # Phony targets
 # ---------------------------
-.PHONY: all library clean_o clean_bin clean bear main exec
+.PHONY: all library clean_o clean_bin clean bear main exec run_test
 
 # Targets
 # ---------------------------
@@ -76,6 +84,8 @@ INC = -I src/include -I /usr/local/include
 #default target
 all: library
 
+truc:
+	echo $(FLAGS)
 # Generate compile_commands.json file for clangd
 bear:
 	make clean; bear -- make all
@@ -85,11 +95,29 @@ library: lib$(LIB_NAME).a
 
 # Rule to build library
 lib$(LIB_NAME).a: $(LIB_OBJS)
-	ar rcs $(BIN_DIR)/$@ $^
+	ar rcs $(BIN_DIR)/$@ $^ 
 
 # Rule to build library object files
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
+%.o: %.c
+	$(CC) $(FLAGS) $(INC) -c $< -o $@ 
+
+test: $(TEST_FILES:.c=.o)
+	$(CC) $(FLAGS) $^ -o $(BIN_DIR)/$@ $(LINK) $(INC_STATIC_BIN) $(INC_LIBS) $(LIB_TEST)  
+
+# Rule to build main application
+main: library main.o
+	$(CC) $(FLAGS) $@.c -o $(BIN_DIR)/$@ $(INC) $(LINK) $(LIBS)
+
+# Rule to build main application object files
+main.o: main.c
 	$(CC) $(FLAGS) $(INC) -c $< -o $@
+
+# Rule to execute the main application
+exec: main
+	./bin/main
+
+run_test: test
+	./$(BIN_DIR)/test
 
 # Remove every object files and binary files
 clean: clean_o clean_bin
@@ -101,17 +129,5 @@ clean_o:
 
 # Remove every exectuable file in the root directory
 clean_bin:
-	find ./$(BIN_DIR) -type f -perm +111 -maxdepth 1 -delete;
-	find ./$(BIN_DIR)/*.a -delete   
+	rm  -rf ./$(BIN_DIR)/*;
 
-# Rule to build main application
-main: library main.o
-	$(CC) $@.c -o $(BIN_DIR)/$@ $(INC) $(LINK) $(LIBS)
-
-# Rule to build main application object files
-main.o: main.c
-	$(CC) $(INC) -c $< -o $@
-
-# Rule to execute the main application
-exec: main
-	./bin/main
