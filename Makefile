@@ -1,20 +1,20 @@
 # --- Expected project structure ---
 # .
 # ├── bin
-# │   ├── test_runner
-# │   ├── main
-# │   ├── lib
-# │   │   ├── libx.a
-# │   │   └── libx.so
-# │   └── obj
-# │       └──── x.o
+# │   ├── test_runner
+# │   ├── main
+# │   ├── lib
+# │   │   ├── libx.a
+# │   │   └── libx.so
+# │   └── obj
+# │       └── x.o
 # ├── dev
 # ├── lib
 # ├── main.c
 # ├── src
-# │   ├── x.c
-# │   └──────── include
-# │       └────── x.h
+# │   ├── x.c
+# │   └── include
+# │       └── x.h
 # └── tests
 #     └── x.test.c
 
@@ -27,6 +27,15 @@
 # --- Build Tools ---
 CC := gcc
 AR := ar
+# Check the operating system to set correct linker flags for shared libraries
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Darwin)
+    # macOS linker flags
+    SHARED_LDFLAGS := -Wl,-install_name,/usr/local/lib/lib$(PROJECT_NAME).so
+else
+    # Linux linker flags
+    SHARED_LDFLAGS := -Wl,-soname,lib$(PROJECT_NAME).so
+endif
 
 # --- Build Options ---
 BASE_CFLAGS := -Wall -Wextra -Werror
@@ -61,8 +70,9 @@ TEST_OBJS := $(patsubst $(TEST_DIR)/%.c,$(OBJ_DIR)/test_%.o,$(TEST_SRC_FILES))
 TEST_LIBS := criterion
 LINK_USER_SHARED_LIBS := $(patsubst %, -l%, $(USER_SHARED_LIBS))
 LINK_TEST_LIBS := $(patsubst %, -l%, $(TEST_LIBS))
-STATIC_LIB_BIN_PATHS := $(shell find lib -type d -name "bin")
-STATIC_LIB_INCLUDE_PATHS := $(shell find lib -type d -name "include")
+# Corrected find commands to search within the lib directory
+STATIC_LIB_BIN_PATHS := $(shell find lib -maxdepth 2 -type d -name "bin")
+STATIC_LIB_INCLUDE_PATHS := $(shell find lib -maxdepth 2 -type d -name "include")
 LDFLAGS := -L $(LIB_DIR) -L/usr/local/lib $(patsubst %, -L%, $(STATIC_LIB_BIN_PATHS))
 LDLIBS := -l$(PROJECT_NAME) $(LINK_USER_SHARED_LIBS)
 
@@ -97,8 +107,7 @@ $(LIB_DIR)/lib$(PROJECT_NAME).a: $(OBJS) | dirs
 shared: $(LIB_DIR)/lib$(PROJECT_NAME).so
 $(LIB_DIR)/lib$(PROJECT_NAME).so: $(OBJS) | dirs
 	@echo "[CC-shared] $@"
-	@$(CC) -shared $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS) \
-		-Wl,-install_name,/usr/local/lib/lib$(PROJECT_NAME).so
+	@$(CC) -shared $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS) $(SHARED_LDFLAGS)
 
 # --- Main Executable ---
 main: $(MAIN_APP)
