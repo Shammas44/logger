@@ -23,8 +23,10 @@ jobs:
 
       - name: Build and install the library
         run: |
+          # Create the local lib directory for building before installing
+          mkdir -p lib
           make OPTION=test
           sudo make install
 
       - name: Build and run tests
-        run: make run_test
+        run: make OPTION=test run_test

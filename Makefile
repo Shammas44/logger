@@ -44,9 +44,9 @@ ifeq ($(OPTION), prod)
 else ifeq ($(OPTION), dev)
   CFLAGS := $(BASE_CFLAGS) -g
 else ifeq ($(OPTION), test)
-  CFLAGS := $(BASE_CFLAGS) -g -Wno-builtin-declaration-mismatch -Wno-implicit-function-declaration
+  CFLAGS := $(BASE_CFLAGS) -g -Wno-builtin-declaration-mismatch -Wno-implicit-function-declaration -fPIC
 else
-  CFLAGS := $(BASE_CFLAGS) -g
+  CFLAGS := $(BASE_CFLAGS) -g -fPIC
 endif
 
 # --- Directories ---
