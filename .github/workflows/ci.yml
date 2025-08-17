@@ -23,7 +23,7 @@ jobs:
 
       - name: Build and install the library
         run: |
-          make
+          make OPTION=test
           sudo make install
 
       - name: Build and run tests
