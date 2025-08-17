@@ -13,14 +13,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Install build dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc make libcriterion-dev
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc make libcriterion-dev
 
-    - name: Build and run tests
-      run: |
-        mkdir -p bin; make && make run_test
+      - name: Build and install the library
+        run: |
+          make
+          sudo make install
+
+      - name: Build and run tests
+        run: make run_test
